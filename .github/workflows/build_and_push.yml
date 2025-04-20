@@ -1,14 +1,9 @@
 name: Docker image build and push
 
 on:
-  workflow_dispatch:
-    inputs:
-      branch:
-        description: "The branch to build the Docker image from"
-        required: false
-        default: "master"
-  release:
-    types: [created]
+  push:
+    branches:
+      - master
 
 jobs:
   build-and-push-docker:
@@ -17,7 +12,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.inputs.branch || github.ref_name }}
+          ref: master
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -36,37 +31,28 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Login to Docker Hub
+      - name: Login to GitHub Container Registry
         uses: docker/login-action@v3.1.0
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set Docker tags
         id: docker_meta
         run: |
-          VERSION=${GITHUB_REF#refs/tags/}
-          TAGS="freikin/dawarich:${VERSION}"
-
-          # Add :rc tag for pre-releases
-          if [ "${{ github.event.release.prerelease }}" = "true" ]; then
-            TAGS="${TAGS},freikin/dawarich:rc"
-          fi
-
-          # Add :latest tag only if release is not a pre-release
-          if [ "${{ github.event.release.prerelease }}" != "true" ]; then
-            TAGS="${TAGS},freikin/dawarich:latest"
-          fi
-
+          # リポジトリ名を小文字に変換（GitHub Container Registryの要件）
+          REPO_NAME=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          TAGS="ghcr.io/${REPO_NAME}:latest"
           echo "tags=${TAGS}" >> $GITHUB_OUTPUT
 
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: ./docker/Dockerfile.dev
+          file: ./docker/Dockerfile.prod
           push: true
           tags: ${{ steps.docker_meta.outputs.tags }}
-          platforms: linux/amd64,linux/arm64,linux/arm/v7,linux/arm/v6
+          platforms: linux/amd64
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache
