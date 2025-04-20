@@ -21,17 +21,26 @@ class Photos::Search
   private
 
   def request_immich
-    formatted_start_date = format_date_for_immich(start_date)
-    formatted_end_date = format_date_for_immich(end_date)
+    # Store original dates for filtering later
+    original_start_date = format_date_for_immich(start_date)
+    original_end_date = format_date_for_immich(end_date)
 
-    # If start_date and end_date are the same, set start_date to the previous day
-    formatted_start_date = (Date.parse(formatted_start_date) - 1).to_s if formatted_start_date == formatted_end_date
+    # Always set start_date to previous day and end_date to next day
+    adjusted_start_date = (Date.parse(original_start_date) - 1).to_s
+    adjusted_end_date = original_end_date ? (Date.parse(original_end_date) + 1).to_s : nil
 
-    Immich::RequestPhotos.new(
+    # Get assets from Immich with expanded date range
+    assets = Immich::RequestPhotos.new(
       user,
-      start_date: formatted_start_date,
-      end_date: formatted_end_date
+      start_date: adjusted_start_date,
+      end_date: adjusted_end_date
     ).call.map { |asset| transform_asset(asset, 'immich') }.compact
+
+    # Filter assets to only include those within the original date range
+    assets.select do |asset|
+      asset_date = format_date_for_immich(asset['localDateTime'])
+      asset_date >= original_start_date && (original_end_date.nil? || asset_date <= original_end_date)
+    end
   end
 
   def format_date_for_immich(date_string)
