@@ -1898,6 +1898,7 @@ export default class extends BaseController {
       "Points",
       "Routes",
       "Heatmap",
+      "Photos",
     ]
     console.log("Initializing layers from settings:", enabledLayers)
 
@@ -1952,6 +1953,21 @@ export default class extends BaseController {
             this.clearFogRadius,
             this.fogLineThreshold,
           )
+        } else if (name === "Photos") {
+          // overlayadd is not fired by addTo, so fetch photos here
+          const urlParams = new URLSearchParams(window.location.search)
+          const startDate =
+            urlParams.get("start_at") ||
+            new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+          const endDate = urlParams.get("end_at") || new Date().toISOString()
+          fetchAndDisplayPhotos({
+            map: this.map,
+            photoMarkers: this.photoMarkers,
+            apiKey: this.apiKey,
+            startDate: startDate,
+            endDate: endDate,
+            userSettings: this.userSettings,
+          })
         } else if (name === "Suggested" || name === "Confirmed") {
           if (
             this.visitsManager &&
