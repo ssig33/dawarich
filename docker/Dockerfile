@@ -54,7 +54,7 @@ RUN gem update --system 3.6.9 \
 
 WORKDIR $APP_PATH
 
-COPY ../Gemfile ../Gemfile.lock ../.ruby-version ../vendor ./
+COPY Gemfile Gemfile.lock .ruby-version vendor ./
 
 # Install production gems only
 RUN bundle config set --local path 'vendor/bundle' \
@@ -62,7 +62,11 @@ RUN bundle config set --local path 'vendor/bundle' \
     && bundle install --jobs 4 --retry 3 \
     && rm -rf vendor/bundle/ruby/3.4.0/cache/*.gem
 
-COPY ../. ./
+# Install JS dependencies (daisyui plugin is required for the Tailwind build)
+COPY package.json package-lock.json ./
+RUN npm install
+
+COPY . ./
 
 # Precompile assets
 RUN SECRET_KEY_BASE_DUMMY=1 bundle exec rake assets:precompile \
