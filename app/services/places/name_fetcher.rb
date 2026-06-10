@@ -2,10 +2,18 @@
 
 module Places
   class NameFetcher
+    def self.reverse_geocode(lat, lon)
+      if DawarichSettings.google_places_enabled?
+        ReverseGeocoding::Places::GoogleLookup.search(lat, lon, limit: 1, radius_km: 1).first
+      else
+        Geocoder.search([lat, lon], units: :km, limit: 1, distance_sort: true).first
+      end
+    end
+
     def self.lookup_attrs(lat, lon)
       return nil unless DawarichSettings.reverse_geocoding_enabled?
 
-      result = Geocoder.search([lat, lon], units: :km, limit: 1, distance_sort: true).first
+      result = reverse_geocode(lat, lon)
       return nil if result.blank?
 
       properties = result.data&.dig('properties')
@@ -24,7 +32,7 @@ module Places
     end
 
     def call
-      result = Geocoder.search([place.lat, place.lon], units: :km, limit: 1, distance_sort: true).first
+      result = self.class.reverse_geocode(place.lat, place.lon)
       return nil if result.blank?
 
       properties = result.data&.dig('properties')

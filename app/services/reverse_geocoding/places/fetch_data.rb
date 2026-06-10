@@ -177,6 +177,10 @@ class ReverseGeocoding::Places::FetchData
   end
 
   def geocoder_places
+    if DawarichSettings.google_places_enabled?
+      return ReverseGeocoding::Places::GoogleLookup.search(place.lat, place.lon, limit: 10, radius_km: 1)
+    end
+
     Geocoder.search(
       [place.lat, place.lon],
       limit: 10,

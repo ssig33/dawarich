@@ -6,7 +6,12 @@ class DawarichSettings
 
   class << self
     def reverse_geocoding_enabled?
-      @reverse_geocoding_enabled ||= photon_enabled? || geoapify_enabled? || nominatim_enabled? || locationiq_enabled?
+      @reverse_geocoding_enabled ||=
+        google_places_enabled? || photon_enabled? || geoapify_enabled? || nominatim_enabled? || locationiq_enabled?
+    end
+
+    def google_places_enabled?
+      @google_places_enabled ||= GOOGLE_PLACES_API_KEY.present?
     end
 
     def photon_enabled?
